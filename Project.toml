@@ -1,0 +1,8 @@
+name = "DLPackInterface"
+uuid = "6e787858-8d78-4581-8adc-1f18959d2050"
+authors = ["Christopher Doris <github.com/cjdoris>"]
+version = "0.1.0"
+
+[deps]
+ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
