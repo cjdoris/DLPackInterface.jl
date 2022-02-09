@@ -12,11 +12,11 @@ pkg> add DLPackInterface
 
 ## Usage
 
-Easiest option: call `dlinfo(x)`. It returns a NamedTuple of information about `x` if it
+Call `dlinfo(x)`. It returns a NamedTuple of information about `x` if it
 satisfies the DLPack interface. Otherwise, it returns `nothing`.
 
-Fine-level option: call `t = dltensor(x)`. This yields a view of `x` which can be queried
-for information:
+Alternatively you can call `t = dltensor(x)`. If `x` is a tensor, this yields a view of `x`
+which can be queried for information (otherwise returns `nothing`):
 - `dldata(t)`
 - `dldataoffset(t)`
 - `dldevice(t)`
@@ -27,14 +27,10 @@ for information:
 - `dllength(t)`
 - `dlsizeof(t)`
 
-You can check if `x` satisfies the interface with `isdltensor(x)`.
-If this returns false then `dltensor(x)` will throw and `dlinfo(x)` will return `nothing`.
-
 ## Implementing the interface
 
 To implement the interface for type `T`, you must define the following functions:
-- `isdltensor(::Type{T})::Bool = true`
-- `dltensor(x::T)` (defaults to `x`)
+- `dltensor(x::T) -> t` or `nothing` if `x` is not a tensor; it is reasonable to return `x`
 - `dldata(t)::Ptr{Cvoid}` (defaults to `convert(Ptr{Cvoid}, pointer(t))`)
 - `dldataoffset(t)::Int` (defaults to 0)
 - `dldevice(t)::DLDevice` (defaults to `DLDevice(DL_CPU)`)

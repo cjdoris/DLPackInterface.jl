@@ -6,7 +6,7 @@ import ArrayInterface
 export DLDeviceType, DLDevice, DLDataTypeCode, DLDataType, DLTensor
 export DL_CPU, DL_CUDA, DL_CUDAHost, DL_OpenCL, DL_Vulkan, DL_Metal, DL_VPI, DL_ROCM, DL_ROCMHost, DL_ExtDev, DL_CUDAManaged, DL_OneAPI, DL_WebGPU, DL_Hexagon
 export DL_Int, DL_UInt, DL_Float, DL_OpaqueHandle, DL_Bfloat, DL_Complex
-export isdleltype, isdltensor, dltensor, dldata, dldataoffset, dldevice, dldatatype, dlndim, dlshape, dlstride, dlstrides, dlsizeof, dlinfo, dllength
+export isdleltype, dltensor, dldata, dldataoffset, dldevice, dldatatype, dlndim, dlshape, dlstride, dlstrides, dlsizeof, dlinfo, dllength
 
 ### Types
 #
@@ -96,20 +96,6 @@ function isdleltype end
 @eval isdleltype(::Type{T}) where {T} = T in $(Tuple(keys(TYPE_TO_DATATYPE)))
 
 """
-    isdltensor(T::Type)
-    isdltensor(x::T)
-
-True if objects of type `T` satisfy the DLPack interface.
-
-You can call `t = dltensor(x)` on such an object, then call `dldata(t)`, `dldevice(t)`,
-etc. to determine information about the tensor.
-"""
-isdltensor(::Type{T}) where {T} = false
-isdltensor(::Type{T}) where {T<:AbstractArray} = isdleltype(eltype(T)) && ArrayInterface.defines_strides(T) && ArrayInterface.device(T) === ArrayInterface.CPUPointer()
-isdltensor(::Type{T}) where {T<:StridedArray} = isdleltype(eltype(T))
-isdltensor(x) = isdltensor(typeof(x))
-
-"""
     dltensor(x)
 
 An object `t` which can be passed to `dldata`, `dldevice`, etc. to determine information
@@ -117,7 +103,9 @@ about the tensor `x`.
 
 As long as `t` is not garbarge collected, the pointer `dldata(t)` remains valid.
 """
-dltensor(x) = isdltensor(x) ? x : error("not a tensor")
+dltensor(x) = nothing
+dltensor(x::T) where {T<:AbstractArray} = isdleltype(eltype(T)) && ArrayInterface.defines_strides(T) && ArrayInterface.device(T) === ArrayInterface.CPUPointer() ? x : nothing
+dltensor(x::T) where {T<:StridedArray} = isdleltype(eltype(T)) ? x : nothing
 
 """
     dldata(t) :: Ptr{Cvoid}
@@ -218,8 +206,7 @@ It has fields `tensor`, `pointer`, `pointeroffset`, `device`, `datatype`, `ndim`
 `strides` containing the outputs of the corresponding `dl*` functions.
 """
 function dlinfo(x)
-    if isdltensor(x)
-        t = dltensor(x)
+    if (t = dltensor(x)) !== nothing
         (
             tensor = t,
             pointer = dldata(t)::Ptr{Cvoid},
@@ -238,7 +225,7 @@ end
 
 function __init__()
     @require CUDA="052768ef-5323-5732-b1bb-66c8b64840ba" @eval begin
-        isdltensor(::CUDA.CuArray) = true
+        dltensor(x::CUDA.CuArray) = x
         dldata(x::CUDA.CuArray) = reinterpret(Ptr{Cvoid}, pointer(x))
         dldevice(x::CUDA.CuArray) = DLDevice(CUDA.device(x))
         DLDevice(d::CUDA.CuDevice) = DLDevice(DL_CUDA, d.handle)
